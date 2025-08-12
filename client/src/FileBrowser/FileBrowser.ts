@@ -249,17 +249,17 @@ export class FileBrowser {
         if (!breadcrumb) return;
 
         if (!path) {
-            breadcrumb.innerHTML = '<a href="#" onclick="app.loadDirectory(\'\')">Home</a>';
+            breadcrumb.innerHTML = '<a href="#" onclick="app.fileBrowser.loadDirectory(\'\')">Home</a>';
             return;
         }
 
         const parts = path.split('/').filter(p => p);
         let currentPath = '';
-        let breadcrumbHtml = '<a href="#" onclick="app.loadDirectory(\'\')">Home</a>';
+        let breadcrumbHtml = '<a href="#" onclick="app.fileBrowser.loadDirectory(\'\')">Home</a>';
 
         parts.forEach(part => {
             currentPath += (currentPath ? '/' : '') + part;
-            breadcrumbHtml += ` / <a href="#" onclick="app.loadDirectory('${currentPath}')">${part}</a>`;
+            breadcrumbHtml += ` / <a href="#" onclick="app.fileBrowser.loadDirectory('${currentPath}')">${part}</a>`;
         });
 
         breadcrumb.innerHTML = breadcrumbHtml;
@@ -270,7 +270,7 @@ export class FileBrowser {
         if (!backLink) return;
 
         if (parentPath !== null) {
-            backLink.innerHTML = `<a href="#" onclick="app.loadDirectory('${parentPath || ''}')">🔙 Back</a>`;
+            backLink.innerHTML = `<a href="#" onclick="app.fileBrowser.loadDirectory('${parentPath || ''}')">🔙 Back</a>`;
         } else {
             backLink.innerHTML = '';
         }

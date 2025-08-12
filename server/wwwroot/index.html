@@ -16,7 +16,7 @@
         }
 
         .item-name {
-            max-width: 100px;
+            max-width: 20rem;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -36,25 +36,31 @@
         }
 
         .container {
-            width: 25%;
             margin: 0 auto;
             padding: 2rem;
             min-width: 500px;
+            display: flex;
+            flex-direction: column;
+            margin-left: 10rem;
+            margin-right: 10rem;
         }
 
-        .search-container {
+        .search-container,
+        .upload-container {
             margin-bottom: 1rem;
             display: flex;
             gap: 0.5rem;
             align-items: center;
         }
 
-        .search-container input {
+        .search-container input,
+        .upload-container input {
             flex: 1;
             margin-bottom: 0;
         }
 
-        .search-container button {
+        .search-container button,
+        .upload-container button {
             margin-bottom: 0;
             white-space: nowrap;
         }
@@ -75,6 +81,10 @@
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Search files and folders..." />
             <button type="button" id="searchButton">🔍 Search</button>
+        </div>
+        <div class="upload-container">
+            <input type="file" id="fileUploadInput" multiple style="flex: 1;" />
+            <button type="button" id="uploadButton">📤 Upload</button>
         </div>
         <div id="breadcrumb"></div>
         <div id="backLink"></div>

@@ -70,5 +70,31 @@ namespace AppProject.Controllers
                 _ => BadRequest("Unknown error occurred")
             };
         }
+
+        [HttpPost("upload")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [RequestSizeLimit(10 * 1024 * 1024)] // 10MB limit
+        public async Task<IActionResult> UploadFile([FromQuery] string path = "", IFormFile? file = null)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("No file was uploaded");
+            }
+
+            using var stream = file.OpenReadStream();
+            var result = await _fileExplorerService.UploadFile(path, stream, file.FileName);
+
+            return result.Type switch
+            {
+                ResultType.Success => Ok(result.Data),
+                ResultType.NotFound => NotFound(result.ErrorMessage),
+                ResultType.Unauthorized => Unauthorized(result.ErrorMessage),
+                ResultType.BadRequest => BadRequest(result.ErrorMessage),
+                ResultType.Error => StatusCode(500, result.ErrorMessage),
+                _ => BadRequest("Unknown error occurred")
+            };
+        }
     }
 }

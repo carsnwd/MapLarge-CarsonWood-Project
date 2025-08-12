@@ -8,6 +8,7 @@ namespace AppProject.Modules.FileExplorer
         Task<FileExplorerResult> BrowseDirectory(string path);
         Task<SearchResult> SearchByQuery(string query, string path = "");
         Task<FileDownloadResult> GetFileForDownload(string path);
+        Task<FileUploadResult> UploadFile(string path, Stream fileStream, string fileName);
     }
 
     public class FileExplorerService : IFileExplorerService
@@ -16,11 +17,15 @@ namespace AppProject.Modules.FileExplorer
         private readonly IConfiguration _configuration;
         private readonly string _homeDirectory;
 
+        // Maximum file size (10MB by default)
+        private readonly long _maxFileSize;
+
         public FileExplorerService(ILogger<FileExplorerService> logger, IConfiguration configuration)
         {
             _logger = logger;
             _configuration = configuration;
             _homeDirectory = _configuration["HomeDirectory"] ?? @"C:\";
+            _maxFileSize = _configuration.GetValue<long>("MaxUploadFileSize", 10 * 1024 * 1024); // 10MB default
         }
 
         public Task<FileExplorerResult> BrowseDirectory(string path)
@@ -134,6 +139,100 @@ namespace AppProject.Modules.FileExplorer
             }
         }
 
+        public async Task<FileUploadResult> UploadFile(string path, Stream fileStream, string fileName)
+        {
+            try
+            {
+                _logger.LogInformation("Uploading file: '{FileName}' to path: '{Path}'", fileName, path);
+
+                // Validate file name
+                if (string.IsNullOrWhiteSpace(fileName))
+                {
+                    return FileUploadResult.BadRequest("File name cannot be empty");
+                }
+
+                if (HasInvalidFileNameCharacters(fileName))
+                {
+                    return FileUploadResult.BadRequest("File name contains invalid characters");
+                }
+
+                // Validate file size
+                if (fileStream.Length > _maxFileSize)
+                {
+                    return FileUploadResult.BadRequest($"File size exceeds maximum allowed size of {_maxFileSize / (1024 * 1024)}MB");
+                }
+
+                // Get target directory
+                var targetDirectory = GetSafePath(path ?? "");
+                if (!Directory.Exists(targetDirectory))
+                {
+                    _logger.LogWarning("Target directory does not exist: '{TargetDirectory}'", targetDirectory);
+                    return FileUploadResult.NotFound($"Directory not found: {path}");
+                }
+
+                // Create full file path
+                var targetFilePath = Path.Combine(targetDirectory, fileName);
+
+                // Check if file already exists
+                if (System.IO.File.Exists(targetFilePath))
+                {
+                    return FileUploadResult.BadRequest($"File '{fileName}' already exists in this directory");
+                }
+
+                // Ensure the target file path is still within the home directory (security check)
+                var normalizedTargetPath = Path.GetFullPath(targetFilePath);
+                if (!normalizedTargetPath.StartsWith(_homeDirectory, StringComparison.OrdinalIgnoreCase))
+                {
+                    return FileUploadResult.Unauthorized("Invalid file path");
+                }
+
+                // Copy the uploaded file to the target location
+                using (var targetStream = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write))
+                {
+                    await fileStream.CopyToAsync(targetStream);
+                }
+
+                _logger.LogInformation("File uploaded successfully: '{TargetFilePath}'", targetFilePath);
+
+                // Return the created file info
+                var fileInfo = new FileInfo(targetFilePath);
+                var relativePath = Path.GetRelativePath(_homeDirectory, targetFilePath);
+
+                var uploadedFile = new FileSystemItem
+                {
+                    Name = fileInfo.Name,
+                    Path = relativePath.Replace('\\', '/'),
+                    Size = fileInfo.Length,
+                    LastModified = fileInfo.LastWriteTime,
+                    Extension = fileInfo.Extension,
+                    Type = "file"
+                };
+
+                return FileUploadResult.Success(uploadedFile);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Access denied during file upload: {FileName} to {Path}", fileName, path);
+                return FileUploadResult.Unauthorized("Access denied to the specified directory");
+            }
+            catch (IOException ex)
+            {
+                _logger.LogError(ex, "IO error during file upload: {FileName} to {Path}", fileName, path);
+                return FileUploadResult.Error("Error writing file to disk");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading file: {FileName} to {Path}", fileName, path);
+                return FileUploadResult.Error("Error uploading file");
+            }
+        }
+
+        private static bool HasInvalidFileNameCharacters(string fileName)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            return fileName.IndexOfAny(invalidChars) >= 0;
+        }
+
         private static string GetContentType(string extension)
         {
             return extension.ToLowerInvariant() switch
@@ -160,7 +259,6 @@ namespace AppProject.Modules.FileExplorer
             var results = new List<FileSystemItem>();
             try
             {
-                // Determine the search directory
                 var searchDirectory = string.IsNullOrEmpty(searchPath) ? _homeDirectory : GetSafePath(searchPath);
 
                 _logger.LogInformation("Searching for '{Query}' in directory: '{SearchDirectory}'", query, searchDirectory);
@@ -173,14 +271,10 @@ namespace AppProject.Modules.FileExplorer
 
                 var searchPattern = $"*{query}*";
 
-                // Search for files
                 var foundFiles = Directory.GetFiles(searchDirectory, searchPattern, SearchOption.AllDirectories);
-
-                // Search for directories
                 var foundDirectories = Directory.GetDirectories(searchDirectory, searchPattern, SearchOption.AllDirectories);
 
-                // Process found files
-                foreach (var file in foundFiles.Take(50)) // Limit file results
+                foreach (var file in foundFiles.Take(50))
                 {
                     var fileInfo = new FileInfo(file);
                     var relativePath = Path.GetRelativePath(_homeDirectory, file);
@@ -196,8 +290,7 @@ namespace AppProject.Modules.FileExplorer
                     });
                 }
 
-                // Process found directories
-                foreach (var directory in foundDirectories.Take(50)) // Limit directory results
+                foreach (var directory in foundDirectories.Take(50))
                 {
                     var dirInfo = new DirectoryInfo(directory);
                     var relativePath = Path.GetRelativePath(_homeDirectory, directory);
@@ -233,7 +326,6 @@ namespace AppProject.Modules.FileExplorer
             var fullPath = Path.Combine(_homeDirectory, relativePath);
             var normalizedPath = Path.GetFullPath(fullPath);
 
-            // Ensure the path is within the home directory
             if (!normalizedPath.StartsWith(_homeDirectory, StringComparison.OrdinalIgnoreCase))
             {
                 throw new UnauthorizedAccessException("Access outside home directory is not allowed");
@@ -343,6 +435,29 @@ namespace AppProject.Modules.FileExplorer
             new() { IsSuccess = false, ErrorMessage = message, Type = ResultType.Unauthorized };
 
         public static FileDownloadResult Error(string message) =>
+            new() { IsSuccess = false, ErrorMessage = message, Type = ResultType.Error };
+    }
+
+    public class FileUploadResult
+    {
+        public bool IsSuccess { get; private set; }
+        public string? ErrorMessage { get; private set; }
+        public FileSystemItem? Data { get; private set; }
+        public ResultType Type { get; private set; }
+
+        public static FileUploadResult Success(FileSystemItem data) =>
+            new() { IsSuccess = true, Data = data, Type = ResultType.Success };
+
+        public static FileUploadResult NotFound(string message) =>
+            new() { IsSuccess = false, ErrorMessage = message, Type = ResultType.NotFound };
+
+        public static FileUploadResult Unauthorized(string message) =>
+            new() { IsSuccess = false, ErrorMessage = message, Type = ResultType.Unauthorized };
+
+        public static FileUploadResult BadRequest(string message) =>
+            new() { IsSuccess = false, ErrorMessage = message, Type = ResultType.BadRequest };
+
+        public static FileUploadResult Error(string message) =>
             new() { IsSuccess = false, ErrorMessage = message, Type = ResultType.Error };
     }
 
