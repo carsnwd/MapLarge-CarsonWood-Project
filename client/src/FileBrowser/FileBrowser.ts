@@ -165,7 +165,7 @@ export class FileBrowser {
         }
     }
 
-    private showError(message: string): void {
+    public showError(message: string): void {
         const errorEl = document.getElementById('error');
         if (errorEl) {
             errorEl.textContent = message;

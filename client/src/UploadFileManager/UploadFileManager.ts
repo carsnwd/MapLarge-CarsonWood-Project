@@ -21,6 +21,7 @@ export class UploadFileManager {
                     await Promise.all(Array.from(fileInput.files).map(file => this.uploadFile(file)));
                     this.fileBrowser.loadDirectory(this.urlManager.path);
                 } catch (e) {
+                    this.fileBrowser.showError('Error uploading file');
                     console.error('Error uploading file:', e);
                 }
             }
