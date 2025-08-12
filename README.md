@@ -4,8 +4,8 @@
 To setup this project, do the following...
 
 1. Ensure .NET / C# is setup on your machine.
-2. Ensure NodeJS is setup on your machine.
+2. (Optional if want to rebuild the client) Ensure NodeJS is setup on your machine.
 3. Navigate to the server directory and set the home directory within the appsettings.json file
     - Use "HomeDirectory": "C:\\Users\\carsn\\dev" and change it to a directory on your machine.
-4. Navigate to the client directory and run `npm i` and `npm run build`
+4. (Optional if you want to rebuild the client) Navigate to the client directory and run `npm i` and `npm run build`
 5. Start the .NET server using VS Code or Visual Studio.
