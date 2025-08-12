@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using AppProject.Modules.FileExplorer;
+using AppProject.Modules.FileUpload;
+using AppProject.Modules.FileSearch;
 
 namespace AppProject.Controllers
 {
@@ -8,16 +10,17 @@ namespace AppProject.Controllers
     public class FileExplorerController : ControllerBase
     {
         private readonly IFileExplorerService _fileExplorerService;
+        private readonly IFileUploadService _fileUploadService;
+        private readonly IFileSearchService _fileSearchService;
 
-        public FileExplorerController(IFileExplorerService fileExplorerService)
+        public FileExplorerController(IFileExplorerService fileExplorerService, IFileUploadService fileUploadService, IFileSearchService fileSearchService)
         {
             _fileExplorerService = fileExplorerService;
+            _fileUploadService = fileUploadService;
+            _fileSearchService = fileSearchService;
         }
 
         [HttpGet("browse")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> BrowseDirectory([FromQuery] string path = "")
         {
             var result = await _fileExplorerService.BrowseDirectory(path);
@@ -33,9 +36,6 @@ namespace AppProject.Controllers
         }
 
         [HttpGet("download")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DownloadFile([FromQuery] string path)
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -56,11 +56,9 @@ namespace AppProject.Controllers
         }
 
         [HttpGet("search")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> SearchByQuery([FromQuery] string query, [FromQuery] string path = "")
         {
-            var result = await _fileExplorerService.SearchByQuery(query, path);
+            var result = await _fileSearchService.SearchFilesByQuery(query, path);
 
             return result.Type switch
             {
@@ -72,9 +70,6 @@ namespace AppProject.Controllers
         }
 
         [HttpPost("upload")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [RequestSizeLimit(10 * 1024 * 1024)] // 10MB limit
         public async Task<IActionResult> UploadFile([FromQuery] string path = "", IFormFile? file = null)
         {
@@ -84,7 +79,7 @@ namespace AppProject.Controllers
             }
 
             using var stream = file.OpenReadStream();
-            var result = await _fileExplorerService.UploadFile(path, stream, file.FileName);
+            var result = await _fileUploadService.UploadFile(path, stream, file.FileName);
 
             return result.Type switch
             {

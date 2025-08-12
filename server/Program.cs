@@ -1,5 +1,8 @@
 using AppProject.Controllers;
 using AppProject.Modules.FileExplorer;
+using AppProject.Modules.FileUpload;
+using AppProject.Modules.FileSearch;
+using AppProject.Modules.PathUtils;
 
 namespace AppProject
 {
@@ -12,8 +15,15 @@ namespace AppProject
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            // Register controllers
             builder.Services.AddScoped<FileExplorerController>();
+
+            // Register services
             builder.Services.AddScoped<IFileExplorerService, FileExplorerService>();
+            builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+            builder.Services.AddScoped<IFileSearchService, FileSearchService>();
+            builder.Services.AddScoped<PathUtilsService>();
 
             // Configure file upload limits
             builder.Services.Configure<IISServerOptions>(options =>
@@ -30,6 +40,16 @@ namespace AppProject
             }
 
             app.UseHttpsRedirection();
+
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Path.Equals("/index.html", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Response.Redirect("/", permanent: true);
+                    return;
+                }
+                await next();
+            });
 
             app.UseDefaultFiles(new DefaultFilesOptions
             {

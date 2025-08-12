@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\carsn\\dev\\TestProject\\server\\AppProject.csproj": {}
+    "C:\\Users\\carsn\\dev\\TestProject\\server\\AppProject.csproj": {}
   },
   "projects": {
-    "c:\\Users\\carsn\\dev\\TestProject\\server\\AppProject.csproj": {
+    "C:\\Users\\carsn\\dev\\TestProject\\server\\AppProject.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\carsn\\dev\\TestProject\\server\\AppProject.csproj",
+        "projectUniqueName": "C:\\Users\\carsn\\dev\\TestProject\\server\\AppProject.csproj",
         "projectName": "AppProject",
-        "projectPath": "c:\\Users\\carsn\\dev\\TestProject\\server\\AppProject.csproj",
+        "projectPath": "C:\\Users\\carsn\\dev\\TestProject\\server\\AppProject.csproj",
         "packagesPath": "C:\\Users\\carsn\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\carsn\\dev\\TestProject\\server\\obj\\",
+        "outputPath": "C:\\Users\\carsn\\dev\\TestProject\\server\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\carsn\\AppData\\Roaming\\NuGet\\NuGet.Config"
