@@ -1,0 +1,102 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File & Directory Browser</title>
+    <style>
+        .icon {
+            width: 1em;
+            height: 1em;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 0.5em;
+            fill: currentColor;
+        }
+
+        .item-name {
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+        }
+
+        .folder-icon {
+            fill: #ffa500;
+        }
+
+        .document-icon {
+            fill: #666;
+        }
+
+        .download-icon {
+            fill: #007bff;
+        }
+
+        .container {
+            width: 25%;
+            margin: 0 auto;
+            padding: 2rem;
+            min-width: 500px;
+        }
+
+        .search-container {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .search-container input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .search-container button {
+            margin-bottom: 0;
+            white-space: nowrap;
+        }
+
+        #loading {
+            display: none;
+        }
+
+        #loading[aria-busy="true"] {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>File & Directory Browser</h1>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search files and folders..." />
+            <button type="button" id="searchButton">🔍 Search</button>
+        </div>
+        <div id="breadcrumb"></div>
+        <div id="backLink"></div>
+        <div id="error"></div>
+        <div id="loading" aria-busy="false">
+            <p>Loading...</p>
+        </div>
+        <table id="fileList" class="file-list">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Last Modified</th>
+                </tr>
+            </thead>
+            <tbody id="fileListBody">
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+</body>
+
+</html>
