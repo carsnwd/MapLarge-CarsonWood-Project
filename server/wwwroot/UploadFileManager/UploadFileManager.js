@@ -1,7 +1,8 @@
 export class UploadFileManager {
-    constructor(urlManager, fileBrowser) {
+    constructor(urlManager, fileBrowser, loadingAndErrorManager) {
         this.urlManager = urlManager;
         this.fileBrowser = fileBrowser;
+        this.loadingAndErrorManager = loadingAndErrorManager;
         this.init();
     }
     init() {
@@ -14,11 +15,17 @@ export class UploadFileManager {
                     this.fileBrowser.loadDirectory(this.urlManager.path);
                 }
                 catch (e) {
+                    this.loadingAndErrorManager.showError('Error uploading file');
                     console.error('Error uploading file:', e);
                 }
             }
         });
     }
+    /**
+     * uploads a file to the server, using the current path as well
+     * @param file
+     * @returns
+     */
     async uploadFile(file) {
         const formData = new FormData();
         formData.append('file', file);

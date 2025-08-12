@@ -86,19 +86,23 @@ export const FileRow = (props) => {
  * Manages the file browsing functionality
  */
 export class FileBrowser {
-    constructor(urlManager, searchManager) {
+    constructor(urlManager, searchManager, loadingAndErrorManager) {
         this.urlManager = urlManager;
         this.searchManager = searchManager;
+        this.loadingAndErrorManager = loadingAndErrorManager;
         this.init();
     }
     init() {
         this.urlManager.onUrlChanged = (path) => this.loadDirectory(path);
         this.searchManager.onSearchRequested = (query) => this.performSearch(query);
-        this.searchManager.onClearSearchRequested = () => this.clearSearch();
         this.loadDirectory(this.urlManager.path);
     }
+    /**
+     * perform search and update filebrowser content with results
+     * @param query
+     */
     async performSearch(query) {
-        this.showLoading();
+        this.loadingAndErrorManager.showLoading();
         try {
             const data = await this.searchManager.performSearch(query, this.urlManager.path);
             this.searchManager.renderSearchResults(data, (item, isDirectory, isSearchResult) => {
@@ -106,7 +110,7 @@ export class FileBrowser {
                     item,
                     isDirectory,
                     loadDirectoryCallback: (path) => {
-                        this.clearSearch();
+                        this.searchManager.clearSearch();
                         this.loadDirectory(path);
                         this.urlManager.navigateToPath(path);
                     },
@@ -115,55 +119,21 @@ export class FileBrowser {
             });
         }
         catch (error) {
-            this.showError(`Error performing search: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            this.loadingAndErrorManager.showError(`Error performing search: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         finally {
-            await this.hideLoading();
+            await this.loadingAndErrorManager.hideLoading();
         }
     }
-    clearSearch() {
-        this.searchManager.clearSearch();
-        this.loadDirectory(this.urlManager.path);
-    }
-    showLoading() {
-        const loader = document.getElementById('loading');
-        if (loader) {
-            loader.ariaBusy = 'true';
-        }
-        const errorEl = document.getElementById('error');
-        if (errorEl) {
-            errorEl.textContent = '';
-        }
-    }
-    async hideLoading() {
-        const loader = document.getElementById('loading');
-        if (loader) {
-            loader.ariaBusy = 'false';
-        }
-    }
-    showError(message) {
-        const errorEl = document.getElementById('error');
-        if (errorEl) {
-            errorEl.textContent = message;
-        }
-        this.hideLoading();
-    }
-    renderDirectoryCounts(directoryCount, fileCount) {
-        const countsEl = document.getElementById('directoryCounts');
-        if (countsEl) {
-            const total = directoryCount + fileCount;
-            const directoryText = directoryCount === 1 ? 'directory' : 'directories';
-            const fileText = fileCount === 1 ? 'file' : 'files';
-            countsEl.innerHTML = `
-                ${DirectoryIcon} ${directoryCount} ${directoryText} | ${FileIcon} ${fileCount} ${fileText} | Total: ${total} items
-            `;
-        }
-    }
+    /**
+     * load directory data from server
+     * @param path
+     */
     async loadDirectory(path) {
         if (this.searchManager.searchMode) {
             this.searchManager.clearSearch();
         }
-        this.showLoading();
+        this.loadingAndErrorManager.showLoading();
         try {
             const apiPath = path ?
                 `/api/files/browse?path=${encodeURIComponent(path)}` :
@@ -177,12 +147,17 @@ export class FileBrowser {
             this.urlManager.updateUrl(path, this.searchManager.searchQuery);
         }
         catch (error) {
-            this.showError(`Error loading directory: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            this.loadingAndErrorManager.showError(`Error loading directory: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         finally {
-            await this.hideLoading();
+            await this.loadingAndErrorManager.hideLoading();
         }
     }
+    /**
+     * renders a file browser table for the directory
+     * @param data
+     * @returns
+     */
     renderDirectory(data) {
         this.renderBreadcrumb(data.currentPath);
         this.renderBackLink(data.parentPath);
@@ -209,6 +184,11 @@ export class FileBrowser {
             }));
         });
     }
+    /**
+     * renders the breadcrumb for showing path navigation
+     * @param path
+     * @returns
+     */
     renderBreadcrumb(path) {
         const breadcrumb = document.getElementById('breadcrumb');
         if (!breadcrumb)
@@ -226,6 +206,11 @@ export class FileBrowser {
         });
         breadcrumb.innerHTML = breadcrumbHtml;
     }
+    /**
+     * renders the back link to go back on the path
+     * @param parentPath
+     * @returns
+     */
     renderBackLink(parentPath) {
         const backLink = document.getElementById('backLink');
         if (!backLink)
@@ -235,6 +220,22 @@ export class FileBrowser {
         }
         else {
             backLink.innerHTML = '';
+        }
+    }
+    /**
+     * renders the count of files and directories at the top of the file browser
+     * @param directoryCount
+     * @param fileCount
+     */
+    renderDirectoryCounts(directoryCount, fileCount) {
+        const countsEl = document.getElementById('directoryCounts');
+        if (countsEl) {
+            const total = directoryCount + fileCount;
+            const directoryText = directoryCount === 1 ? 'directory' : 'directories';
+            const fileText = fileCount === 1 ? 'file' : 'files';
+            countsEl.innerHTML = `
+                ${DirectoryIcon} ${directoryCount} ${directoryText} | ${FileIcon} ${fileCount} ${fileText} | Total: ${total} items
+            `;
         }
     }
 }

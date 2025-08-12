@@ -39,6 +39,7 @@ export class SearchManager {
 
             searchInput.addEventListener('input', () => {
                 if (searchInput.value.trim() === '' && this.isSearchMode) {
+                    this.clearSearch();
                     this.onClearSearchRequested?.();
                 }
             });
@@ -116,7 +117,7 @@ export class SearchManager {
         });
     }
 
-    // callback funcstions that the file browser uses
+    // callback funcstions that the file browser uses to update its state based on search state changes
     public onSearchRequested?: (query: string) => void;
     public onClearSearchRequested?: () => void;
 

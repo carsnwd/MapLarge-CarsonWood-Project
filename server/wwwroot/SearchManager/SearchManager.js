@@ -31,6 +31,7 @@ export class SearchManager {
             });
             searchInput.addEventListener('input', () => {
                 if (searchInput.value.trim() === '' && this.isSearchMode) {
+                    this.clearSearch();
                     this.onClearSearchRequested?.();
                 }
             });

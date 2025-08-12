@@ -2,6 +2,7 @@ import { UrlManager } from '../UrlManager/UrlManager'
 import { DirectoryData } from './types/DirectoryData';
 import { FileSystemItem } from "./types/FileSystemItem";
 import { SearchManager } from '../SearchManager/SearchManager';
+import { LoadingAndErrorManager } from '../LoadingAndErrorManager/LoadingAndErrorManager';
 
 /**
  * SVG icon for download action.
@@ -106,19 +107,22 @@ export const FileRow = (props: { item: FileSystemItem, isDirectory: boolean, loa
  * Manages the file browsing functionality
  */
 export class FileBrowser {
-    constructor(private urlManager: UrlManager, private searchManager: SearchManager) {
+    constructor(private urlManager: UrlManager, private searchManager: SearchManager, private loadingAndErrorManager: LoadingAndErrorManager) {
         this.init();
     }
 
     private init(): void {
         this.urlManager.onUrlChanged = (path: string) => this.loadDirectory(path);
         this.searchManager.onSearchRequested = (query: string) => this.performSearch(query);
-        this.searchManager.onClearSearchRequested = () => this.clearSearch();
         this.loadDirectory(this.urlManager.path);
     }
 
+    /**
+     * perform search and update filebrowser content with results
+     * @param query 
+     */
     private async performSearch(query: string): Promise<void> {
-        this.showLoading();
+        this.loadingAndErrorManager.showLoading();
 
         try {
             const data = await this.searchManager.performSearch(query, this.urlManager.path);
@@ -127,7 +131,7 @@ export class FileBrowser {
                     item,
                     isDirectory,
                     loadDirectoryCallback: (path) => {
-                        this.clearSearch();
+                        this.searchManager.clearSearch();
                         this.loadDirectory(path);
                         this.urlManager.navigateToPath(path);
                     },
@@ -135,63 +139,22 @@ export class FileBrowser {
                 });
             });
         } catch (error) {
-            this.showError(`Error performing search: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            this.loadingAndErrorManager.showError(`Error performing search: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
-            await this.hideLoading();
+            await this.loadingAndErrorManager.hideLoading();
         }
     }
 
-    public clearSearch(): void {
-        this.searchManager.clearSearch();
-        this.loadDirectory(this.urlManager.path);
-    }
-
-    private showLoading(): void {
-        const loader = document.getElementById('loading');
-        if (loader) {
-            loader.ariaBusy = 'true';
-        }
-
-        const errorEl = document.getElementById('error');
-        if (errorEl) {
-            errorEl.textContent = '';
-        }
-    }
-
-    private async hideLoading(): Promise<void> {
-        const loader = document.getElementById('loading');
-        if (loader) {
-            loader.ariaBusy = 'false';
-        }
-    }
-
-    public showError(message: string): void {
-        const errorEl = document.getElementById('error');
-        if (errorEl) {
-            errorEl.textContent = message;
-        }
-        this.hideLoading();
-    }
-
-    private renderDirectoryCounts(directoryCount: number, fileCount: number): void {
-        const countsEl = document.getElementById('directoryCounts');
-        if (countsEl) {
-            const total = directoryCount + fileCount;
-            const directoryText = directoryCount === 1 ? 'directory' : 'directories';
-            const fileText = fileCount === 1 ? 'file' : 'files';
-
-            countsEl.innerHTML = `
-                ${DirectoryIcon} ${directoryCount} ${directoryText} | ${FileIcon} ${fileCount} ${fileText} | Total: ${total} items
-            `;
-        }
-    }
-
+    /**
+     * load directory data from server
+     * @param path 
+     */
     public async loadDirectory(path: string): Promise<void> {
         if (this.searchManager.searchMode) {
             this.searchManager.clearSearch();
         }
 
-        this.showLoading();
+        this.loadingAndErrorManager.showLoading();
 
         try {
             const apiPath = path ?
@@ -207,16 +170,20 @@ export class FileBrowser {
             this.renderDirectory(data);
             this.urlManager.updateUrl(path, this.searchManager.searchQuery);
         } catch (error) {
-            this.showError(`Error loading directory: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            this.loadingAndErrorManager.showError(`Error loading directory: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
-            await this.hideLoading();
+            await this.loadingAndErrorManager.hideLoading();
         }
     }
 
+    /**
+     * renders a file browser table for the directory
+     * @param data 
+     * @returns 
+     */
     private renderDirectory(data: DirectoryData): void {
         this.renderBreadcrumb(data.currentPath);
         this.renderBackLink(data.parentPath);
-
         this.renderDirectoryCounts(data.directories.length ?? 0, data.files.length ?? 0);
 
         const tbody = document.getElementById('fileListBody');
@@ -244,6 +211,11 @@ export class FileBrowser {
         });
     }
 
+    /**
+     * renders the breadcrumb for showing path navigation
+     * @param path 
+     * @returns 
+     */
     private renderBreadcrumb(path: string): void {
         const breadcrumb = document.getElementById('breadcrumb');
         if (!breadcrumb) return;
@@ -265,6 +237,11 @@ export class FileBrowser {
         breadcrumb.innerHTML = breadcrumbHtml;
     }
 
+    /**
+     * renders the back link to go back on the path
+     * @param parentPath 
+     * @returns 
+     */
     private renderBackLink(parentPath: string | null): void {
         const backLink = document.getElementById('backLink');
         if (!backLink) return;
@@ -273,6 +250,24 @@ export class FileBrowser {
             backLink.innerHTML = `<a href="#" onclick="app.fileBrowser.loadDirectory('${parentPath || ''}')">🔙 Back</a>`;
         } else {
             backLink.innerHTML = '';
+        }
+    }
+
+    /**
+     * renders the count of files and directories at the top of the file browser
+     * @param directoryCount 
+     * @param fileCount 
+     */
+    private renderDirectoryCounts(directoryCount: number, fileCount: number): void {
+        const countsEl = document.getElementById('directoryCounts');
+        if (countsEl) {
+            const total = directoryCount + fileCount;
+            const directoryText = directoryCount === 1 ? 'directory' : 'directories';
+            const fileText = fileCount === 1 ? 'file' : 'files';
+
+            countsEl.innerHTML = `
+                ${DirectoryIcon} ${directoryCount} ${directoryText} | ${FileIcon} ${fileCount} ${fileText} | Total: ${total} items
+            `;
         }
     }
 }

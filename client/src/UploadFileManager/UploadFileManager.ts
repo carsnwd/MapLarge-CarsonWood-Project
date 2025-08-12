@@ -1,13 +1,16 @@
 import { FileBrowser } from "../FileBrowser/FileBrowser";
+import { LoadingAndErrorManager } from "../LoadingAndErrorManager/LoadingAndErrorManager";
 import { UrlManager } from "../UrlManager/UrlManager";
 
 export class UploadFileManager {
     private urlManager: UrlManager;
     private fileBrowser: FileBrowser;
+    private loadingAndErrorManager: LoadingAndErrorManager;
 
-    constructor(urlManager: UrlManager, fileBrowser: FileBrowser) {
+    constructor(urlManager: UrlManager, fileBrowser: FileBrowser, loadingAndErrorManager: LoadingAndErrorManager) {
         this.urlManager = urlManager;
         this.fileBrowser = fileBrowser;
+        this.loadingAndErrorManager = loadingAndErrorManager;
         this.init();
     }
 
@@ -21,13 +24,18 @@ export class UploadFileManager {
                     await Promise.all(Array.from(fileInput.files).map(file => this.uploadFile(file)));
                     this.fileBrowser.loadDirectory(this.urlManager.path);
                 } catch (e) {
-                    this.fileBrowser.showError('Error uploading file');
+                    this.loadingAndErrorManager.showError('Error uploading file');
                     console.error('Error uploading file:', e);
                 }
             }
         });
     }
 
+    /**
+     * uploads a file to the server, using the current path as well
+     * @param file 
+     * @returns 
+     */
     public async uploadFile(file: File): Promise<void> {
         const formData = new FormData();
         formData.append('file', file);
