@@ -24,26 +24,30 @@ namespace AppProject
             }
 
             app.UseHttpsRedirection();
+
+            // Configure static files with default files
+            app.UseDefaultFiles(new DefaultFilesOptions
+            {
+                DefaultFileNames = new List<string> { "index.html" }
+            });
             app.UseStaticFiles();
+
             app.UseRouting();
             app.UseAuthorization();
-
             app.MapControllers();
 
+            // SPA Fallback for client-side routing
             app.MapFallback(async context =>
             {
-                if (context.Request.Path.StartsWithSegments("/api"))
+                // Skip API and Swagger routes
+                if (context.Request.Path.StartsWithSegments("/api") ||
+                    context.Request.Path.StartsWithSegments("/swagger"))
                 {
                     context.Response.StatusCode = 404;
                     return;
                 }
 
-                if (context.Request.Path.StartsWithSegments("/swagger"))
-                {
-                    context.Response.StatusCode = 404;
-                    return;
-                }
-
+                // Serve index.html for all other routess
                 context.Response.ContentType = "text/html";
                 await context.Response.SendFileAsync("wwwroot/index.html");
             });

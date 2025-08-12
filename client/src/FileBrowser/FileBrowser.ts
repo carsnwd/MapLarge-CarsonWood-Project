@@ -173,6 +173,19 @@ export class FileBrowser {
         this.hideLoading();
     }
 
+    private renderDirectoryCounts(directoryCount: number, fileCount: number): void {
+        const countsEl = document.getElementById('directoryCounts');
+        if (countsEl) {
+            const total = directoryCount + fileCount;
+            const directoryText = directoryCount === 1 ? 'directory' : 'directories';
+            const fileText = fileCount === 1 ? 'file' : 'files';
+
+            countsEl.innerHTML = `
+                ${DirectoryIcon} ${directoryCount} ${directoryText} | ${FileIcon} ${fileCount} ${fileText} | Total: ${total} items
+            `;
+        }
+    }
+
     public async loadDirectory(path: string): Promise<void> {
         if (this.searchManager.searchMode) {
             this.searchManager.clearSearch();
@@ -203,6 +216,8 @@ export class FileBrowser {
     private renderDirectory(data: DirectoryData): void {
         this.renderBreadcrumb(data.currentPath);
         this.renderBackLink(data.parentPath);
+
+        this.renderDirectoryCounts(data.directories.length ?? 0, data.files.length ?? 0);
 
         const tbody = document.getElementById('fileListBody');
         if (!tbody) return;
